@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
+	"github.com/jackc/pgx/v5"
 	"swift-gopher/internal/repository/_postgres"
 	"swift-gopher/pkg/modules"
 )
