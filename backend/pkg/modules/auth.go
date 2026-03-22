@@ -39,7 +39,6 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-// Claims is the decoded JWT payload stored in Gin context.
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
