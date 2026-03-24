@@ -4,9 +4,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"swift-gopher/internal/middleware"
 	"swift-gopher/internal/usecase"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -40,7 +41,14 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	protected.Use(middleware.JWT(h.usecases.AuthUsecase))
 	{
 		// orders group → order developer's job
+
 		// couriers group → courier developer's job
+		couriers := protected.Group("/couriers")
+		{
+			couriers.GET("/", h.ListCouriers)
+			couriers.GET("/free", h.ListFreeCouriers)
+			couriers.PATCH("/:id/status", h.UpdateCourierStatus)
+		}
 	}
 
 	return r
