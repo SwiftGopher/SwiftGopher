@@ -15,10 +15,12 @@ type AuthUsecase interface {
 
 type Usecases struct {
 	AuthUsecase
+	CourierUsecase
 }
 
 func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, refreshTTL time.Duration) *Usecases {
 	return &Usecases{
-		AuthUsecase: NewAuthUsecase(repos.AuthRepository, jwtSecret, accessTTL, refreshTTL),
+		AuthUsecase:    NewAuthUsecase(repos.AuthRepository, jwtSecret, accessTTL, refreshTTL),
+		CourierUsecase: NewCourierUsecase(repos.CourierRepository),
 	}
 }
