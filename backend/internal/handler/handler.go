@@ -40,9 +40,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	protected := r.Group("/")
 	protected.Use(middleware.JWT(h.usecases.AuthUsecase))
 	{
-		// orders group → order developer's job
-
-		// couriers group → courier developer's job
+		
 		couriers := protected.Group("/couriers")
 		{
 			couriers.GET("/", h.ListCouriers)
