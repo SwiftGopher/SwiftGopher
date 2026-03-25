@@ -17,13 +17,6 @@ type UpdateStatusRequest struct {
 	Status modules.CourierStatus
 }
 
-type CourierUsecase interface {
-	GetCourier(ctx context.Context, id string) (*modules.Courier, error)
-	ListCouriers(ctx context.Context) ([]*modules.Courier, error)
-	UpdateStatus(ctx context.Context, id string, req UpdateStatusRequest) (*modules.Courier, error)
-	ListFreeCouriers(ctx context.Context) ([]*modules.Courier, error)
-}
-
 type courierUsecase struct {
 	repo CourierRepository
 }
