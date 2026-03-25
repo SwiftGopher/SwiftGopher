@@ -235,8 +235,8 @@ func TestUpdateStatus_InvalidTransition(t *testing.T) {
 		Status: modules.OrderStatusDelivered,
 	})
 
-	if err != usecase.ErrInvalidStatus {
-		t.Errorf("expected ErrInvalidStatus, got %v", err)
+	if err != usecase.ErrInvalidOrderStatus {
+		t.Errorf("expected ErrInvalidOrderStatus, got %v", err)
 	}
 }
 
@@ -295,8 +295,8 @@ func TestUpdateStatus_TerminalStates(t *testing.T) {
 		}
 
 		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
-		if err != usecase.ErrInvalidStatus {
-			t.Errorf("expected ErrInvalidStatus after delivered, got %v", err)
+		if err != usecase.ErrInvalidOrderStatus {
+			t.Errorf("expected ErrInvalidOrderStatus after delivered, got %v", err)
 		}
 	})
 
@@ -307,8 +307,8 @@ func TestUpdateStatus_TerminalStates(t *testing.T) {
 		uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
 
 		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
-		if err != usecase.ErrInvalidStatus {
-			t.Errorf("expected ErrInvalidStatus after cancelled, got %v", err)
+		if err != usecase.ErrInvalidOrderStatus {
+			t.Errorf("expected ErrInvalidOrderStatus after cancelled, got %v", err)
 		}
 	})
 }

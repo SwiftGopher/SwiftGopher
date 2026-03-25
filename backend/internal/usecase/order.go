@@ -7,16 +7,17 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"swift-gopher/internal/repository"
 	"swift-gopher/pkg/modules"
+
+	"github.com/google/uuid"
 )
 
 var (
-	ErrOrderNotFound  = errors.New("order not found")
-	ErrInvalidStatus  = errors.New("invalid status transition")
-	ErrInvalidPrice   = errors.New("price must be greater than 0")
-	ErrMissingAddress = errors.New("pickup and delivery addresses are required")
+	ErrOrderNotFound      = errors.New("order not found")
+	ErrInvalidOrderStatus = errors.New("invalid status transition")
+	ErrInvalidPrice       = errors.New("price must be greater than 0")
+	ErrMissingAddress     = errors.New("pickup and delivery addresses are required")
 )
 
 type orderUsecase struct {
@@ -103,7 +104,7 @@ func (u *orderUsecase) UpdateStatus(ctx context.Context, id string, req modules.
 	}
 
 	if !isValidTransition(order.Status, req.Status) {
-		return nil, ErrInvalidStatus
+		return nil, ErrInvalidOrderStatus
 	}
 
 	oldStatus := order.Status
