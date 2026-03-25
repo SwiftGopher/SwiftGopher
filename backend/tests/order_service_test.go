@@ -8,20 +8,21 @@ import (
 
 	"github.com/google/uuid"
 
-	"swift-gopher/internal/order"
+	"swift-gopher/internal/usecase"
+	"swift-gopher/pkg/modules"
 )
 
 type mockOrderRepo struct {
 	mu      sync.Mutex
-	orders  map[string]*order.Order
-	history []*order.OrderHistory
+	orders  map[string]*modules.Order
+	history []*modules.OrderHistory
 }
 
 func newMockOrderRepo() *mockOrderRepo {
-	return &mockOrderRepo{orders: make(map[string]*order.Order)}
+	return &mockOrderRepo{orders: make(map[string]*modules.Order)}
 }
 
-func (m *mockOrderRepo) Create(_ context.Context, o *order.Order) error {
+func (m *mockOrderRepo) Create(_ context.Context, o *modules.Order) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	cp := *o
@@ -29,21 +30,21 @@ func (m *mockOrderRepo) Create(_ context.Context, o *order.Order) error {
 	return nil
 }
 
-func (m *mockOrderRepo) GetByID(_ context.Context, id string) (*order.Order, error) {
+func (m *mockOrderRepo) GetByID(_ context.Context, id string) (*modules.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	o, ok := m.orders[id]
 	if !ok {
-		return nil, order.ErrOrderNotFound
+		return nil, usecase.ErrOrderNotFound
 	}
 	cp := *o
 	return &cp, nil
 }
 
-func (m *mockOrderRepo) List(_ context.Context) ([]*order.Order, error) {
+func (m *mockOrderRepo) List(_ context.Context) ([]*modules.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	out := make([]*order.Order, 0, len(m.orders))
+	out := make([]*modules.Order, 0, len(m.orders))
 	for _, o := range m.orders {
 		cp := *o
 		out = append(out, &cp)
@@ -51,10 +52,10 @@ func (m *mockOrderRepo) List(_ context.Context) ([]*order.Order, error) {
 	return out, nil
 }
 
-func (m *mockOrderRepo) ListByStatus(_ context.Context, status order.Status) ([]*order.Order, error) {
+func (m *mockOrderRepo) ListByStatus(_ context.Context, status modules.OrderStatus) ([]*modules.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var out []*order.Order
+	var out []*modules.Order
 	for _, o := range m.orders {
 		if o.Status == status {
 			cp := *o
@@ -64,33 +65,33 @@ func (m *mockOrderRepo) ListByStatus(_ context.Context, status order.Status) ([]
 	return out, nil
 }
 
-func (m *mockOrderRepo) UpdateStatus(_ context.Context, id string, status order.Status) error {
+func (m *mockOrderRepo) UpdateStatus(_ context.Context, id string, status modules.OrderStatus) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	o, ok := m.orders[id]
 	if !ok {
-		return order.ErrOrderNotFound
+		return usecase.ErrOrderNotFound
 	}
 	o.Status = status
 	o.UpdatedAt = time.Now()
 	return nil
 }
 
-func (m *mockOrderRepo) RecordHistory(_ context.Context, h *order.OrderHistory) error {
+func (m *mockOrderRepo) RecordHistory(_ context.Context, h *modules.OrderHistory) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.history = append(m.history, h)
 	return nil
 }
 
-func newTestService() order.Service {
+func newTestOrderUsecase() usecase.OrderUsecase {
 	repo := newMockOrderRepo()
-	return order.NewService(repo, newTestLogger())
+	return usecase.NewOrderUsecase(repo, newTestLogger())
 }
 
-func mustCreateOrder(t *testing.T, svc order.Service) *order.Order {
+func mustCreateOrder(t *testing.T, uc usecase.OrderUsecase) *modules.Order {
 	t.Helper()
-	o, err := svc.CreateOrder(context.Background(), uuid.NewString(), order.CreateRequest{
+	o, err := uc.CreateOrder(context.Background(), uuid.NewString(), modules.CreateOrderRequest{
 		PickupAddress:   "Street A",
 		DeliveryAddress: "Street B",
 		Price:           9.99,
@@ -102,9 +103,9 @@ func mustCreateOrder(t *testing.T, svc order.Service) *order.Order {
 }
 
 func TestCreateOrder_Success(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	o, err := svc.CreateOrder(context.Background(), "client-001", order.CreateRequest{
+	o, err := uc.CreateOrder(context.Background(), "client-001", modules.CreateOrderRequest{
 		PickupAddress:   "Almaty, Abay 1",
 		DeliveryAddress: "Almaty, Dostyk 10",
 		Price:           15.50,
@@ -116,7 +117,7 @@ func TestCreateOrder_Success(t *testing.T) {
 	if o.ID == "" {
 		t.Error("order ID must be set")
 	}
-	if o.Status != order.StatusPending {
+	if o.Status != modules.OrderStatusPending {
 		t.Errorf("new order status must be pending, got %q", o.Status)
 	}
 	if o.ClientID != "client-001" {
@@ -125,9 +126,9 @@ func TestCreateOrder_Success(t *testing.T) {
 }
 
 func TestCreateOrder_InvalidPrice(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	_, err := svc.CreateOrder(context.Background(), "client-001", order.CreateRequest{
+	_, err := uc.CreateOrder(context.Background(), "client-001", modules.CreateOrderRequest{
 		PickupAddress:   "A",
 		DeliveryAddress: "B",
 		Price:           -5,
@@ -136,71 +137,71 @@ func TestCreateOrder_InvalidPrice(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected ErrInvalidPrice, got nil")
 	}
-	if err != order.ErrInvalidPrice {
+	if err != usecase.ErrInvalidPrice {
 		t.Errorf("expected ErrInvalidPrice, got %v", err)
 	}
 }
 
 func TestCreateOrder_ZeroPrice(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	_, err := svc.CreateOrder(context.Background(), "client-001", order.CreateRequest{
+	_, err := uc.CreateOrder(context.Background(), "client-001", modules.CreateOrderRequest{
 		PickupAddress:   "A",
 		DeliveryAddress: "B",
 		Price:           0,
 	})
 
-	if err != order.ErrInvalidPrice {
+	if err != usecase.ErrInvalidPrice {
 		t.Errorf("zero price: expected ErrInvalidPrice, got %v", err)
 	}
 }
 
 func TestCreateOrder_MissingAddress(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	_, err := svc.CreateOrder(context.Background(), "client-001", order.CreateRequest{
+	_, err := uc.CreateOrder(context.Background(), "client-001", modules.CreateOrderRequest{
 		PickupAddress:   "A",
 		DeliveryAddress: "",
 		Price:           10,
 	})
 
-	if err != order.ErrMissingAddress {
+	if err != usecase.ErrMissingAddress {
 		t.Errorf("expected ErrMissingAddress, got %v", err)
 	}
 }
 
 func TestCreateOrder_MissingPickup(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	_, err := svc.CreateOrder(context.Background(), "client-001", order.CreateRequest{
+	_, err := uc.CreateOrder(context.Background(), "client-001", modules.CreateOrderRequest{
 		PickupAddress:   "",
 		DeliveryAddress: "B",
 		Price:           10,
 	})
 
-	if err != order.ErrMissingAddress {
+	if err != usecase.ErrMissingAddress {
 		t.Errorf("expected ErrMissingAddress, got %v", err)
 	}
 }
 
 func TestGetOrder_NotFound(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 
-	_, err := svc.GetOrder(context.Background(), "non-existent-id")
+	_, err := uc.GetOrder(context.Background(), "non-existent-id")
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if err != order.ErrOrderNotFound {
+	if err != usecase.ErrOrderNotFound {
 		t.Logf("note: error wraps ErrOrderNotFound — %v", err)
 	}
 }
 
 func TestGetOrder_Success(t *testing.T) {
-	svc := newTestService()
-	created := mustCreateOrder(t, svc)
+	uc := newTestOrderUsecase()
+	created := mustCreateOrder(t, uc)
 
-	fetched, err := svc.GetOrder(context.Background(), created.ID)
+	fetched, err := uc.GetOrder(context.Background(), created.ID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -211,47 +212,47 @@ func TestGetOrder_Success(t *testing.T) {
 }
 
 func TestUpdateStatus_ValidTransition(t *testing.T) {
-	svc := newTestService()
-	o := mustCreateOrder(t, svc)
+	uc := newTestOrderUsecase()
+	o := mustCreateOrder(t, uc)
 
-	updated, err := svc.UpdateStatus(context.Background(), o.ID, order.UpdateStatusRequest{
-		Status: order.StatusAssigned,
+	updated, err := uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{
+		Status: modules.OrderStatusAssigned,
 	})
 
 	if err != nil {
 		t.Fatalf("pending → assigned: expected no error, got %v", err)
 	}
-	if updated.Status != order.StatusAssigned {
+	if updated.Status != modules.OrderStatusAssigned {
 		t.Errorf("status should be assigned, got %q", updated.Status)
 	}
 }
 
 func TestUpdateStatus_InvalidTransition(t *testing.T) {
-	svc := newTestService()
-	o := mustCreateOrder(t, svc)
+	uc := newTestOrderUsecase()
+	o := mustCreateOrder(t, uc)
 
-	_, err := svc.UpdateStatus(context.Background(), o.ID, order.UpdateStatusRequest{
-		Status: order.StatusDelivered,
+	_, err := uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{
+		Status: modules.OrderStatusDelivered,
 	})
 
-	if err != order.ErrInvalidStatus {
+	if err != usecase.ErrInvalidStatus {
 		t.Errorf("expected ErrInvalidStatus, got %v", err)
 	}
 }
 
 func TestUpdateStatus_FullLifecycle(t *testing.T) {
-	svc := newTestService()
-	o := mustCreateOrder(t, svc)
+	uc := newTestOrderUsecase()
+	o := mustCreateOrder(t, uc)
 	ctx := context.Background()
 
-	transitions := []order.Status{
-		order.StatusAssigned,
-		order.StatusInProgress,
-		order.StatusDelivered,
+	transitions := []modules.OrderStatus{
+		modules.OrderStatusAssigned,
+		modules.OrderStatusInProgress,
+		modules.OrderStatusDelivered,
 	}
 
 	for _, next := range transitions {
-		updated, err := svc.UpdateStatus(ctx, o.ID, order.UpdateStatusRequest{Status: next})
+		updated, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: next})
 		if err != nil {
 			t.Fatalf("transition to %q failed: %v", next, err)
 		}
@@ -263,17 +264,17 @@ func TestUpdateStatus_FullLifecycle(t *testing.T) {
 }
 
 func TestUpdateStatus_CancelFromPending(t *testing.T) {
-	svc := newTestService()
-	o := mustCreateOrder(t, svc)
+	uc := newTestOrderUsecase()
+	o := mustCreateOrder(t, uc)
 
-	updated, err := svc.UpdateStatus(context.Background(), o.ID, order.UpdateStatusRequest{
-		Status: order.StatusCancelled,
+	updated, err := uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{
+		Status: modules.OrderStatusCancelled,
 	})
 
 	if err != nil {
 		t.Fatalf("pending → cancelled: expected no error, got %v", err)
 	}
-	if updated.Status != order.StatusCancelled {
+	if updated.Status != modules.OrderStatusCancelled {
 		t.Errorf("expected cancelled, got %q", updated.Status)
 	}
 }
@@ -282,47 +283,51 @@ func TestUpdateStatus_TerminalStates(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("delivered is terminal", func(t *testing.T) {
-		svc := newTestService()
-		o := mustCreateOrder(t, svc)
+		uc := newTestOrderUsecase()
+		o := mustCreateOrder(t, uc)
 
-		for _, s := range []order.Status{order.StatusAssigned, order.StatusInProgress, order.StatusDelivered} {
-			o, _ = svc.UpdateStatus(ctx, o.ID, order.UpdateStatusRequest{Status: s})
+		for _, s := range []modules.OrderStatus{
+			modules.OrderStatusAssigned,
+			modules.OrderStatusInProgress,
+			modules.OrderStatusDelivered,
+		} {
+			o, _ = uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: s})
 		}
 
-		_, err := svc.UpdateStatus(ctx, o.ID, order.UpdateStatusRequest{Status: order.StatusCancelled})
-		if err != order.ErrInvalidStatus {
+		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
+		if err != usecase.ErrInvalidStatus {
 			t.Errorf("expected ErrInvalidStatus after delivered, got %v", err)
 		}
 	})
 
 	t.Run("cancelled is terminal", func(t *testing.T) {
-		svc := newTestService()
-		o := mustCreateOrder(t, svc)
+		uc := newTestOrderUsecase()
+		o := mustCreateOrder(t, uc)
 
-		svc.UpdateStatus(ctx, o.ID, order.UpdateStatusRequest{Status: order.StatusCancelled})
+		uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
 
-		_, err := svc.UpdateStatus(ctx, o.ID, order.UpdateStatusRequest{Status: order.StatusAssigned})
-		if err != order.ErrInvalidStatus {
+		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+		if err != usecase.ErrInvalidStatus {
 			t.Errorf("expected ErrInvalidStatus after cancelled, got %v", err)
 		}
 	})
 }
 
 func TestListPendingOrders(t *testing.T) {
-	svc := newTestService()
+	uc := newTestOrderUsecase()
 	ctx := context.Background()
 
 	for i := 0; i < 3; i++ {
-		mustCreateOrder(t, svc)
+		mustCreateOrder(t, uc)
 	}
 
-	orders, _ := svc.ListPendingOrders(ctx)
+	orders, _ := uc.ListPendingOrders(ctx)
 	if len(orders) < 1 {
 		t.Fatal("need at least 1 order to proceed")
 	}
-	svc.UpdateStatus(ctx, orders[0].ID, order.UpdateStatusRequest{Status: order.StatusAssigned})
+	uc.UpdateStatus(ctx, orders[0].ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
 
-	pending, err := svc.ListPendingOrders(ctx)
+	pending, err := uc.ListPendingOrders(ctx)
 	if err != nil {
 		t.Fatalf("ListPendingOrders failed: %v", err)
 	}
@@ -330,7 +335,7 @@ func TestListPendingOrders(t *testing.T) {
 		t.Errorf("expected 2 pending orders, got %d", len(pending))
 	}
 	for _, o := range pending {
-		if o.Status != order.StatusPending {
+		if o.Status != modules.OrderStatusPending {
 			t.Errorf("ListPendingOrders returned non-pending order: %q", o.Status)
 		}
 	}
@@ -338,15 +343,15 @@ func TestListPendingOrders(t *testing.T) {
 
 func TestHistoryRecorded(t *testing.T) {
 	repo := newMockOrderRepo()
-	svc := order.NewService(repo, newTestLogger())
+	uc := usecase.NewOrderUsecase(repo, newTestLogger())
 
-	o, _ := svc.CreateOrder(context.Background(), "client-x", order.CreateRequest{
+	o, _ := uc.CreateOrder(context.Background(), "client-x", modules.CreateOrderRequest{
 		PickupAddress:   "A",
 		DeliveryAddress: "B",
 		Price:           5,
 	})
 
-	svc.UpdateStatus(context.Background(), o.ID, order.UpdateStatusRequest{Status: order.StatusAssigned})
+	uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
 
 	repo.mu.Lock()
 	historyCount := len(repo.history)
@@ -355,10 +360,10 @@ func TestHistoryRecorded(t *testing.T) {
 	if historyCount == 0 {
 		t.Error("expected at least one history record after status update")
 	}
-	if repo.history[0].OldStatus != order.StatusPending {
+	if repo.history[0].OldStatus != modules.OrderStatusPending {
 		t.Errorf("history old_status: want pending, got %q", repo.history[0].OldStatus)
 	}
-	if repo.history[0].NewStatus != order.StatusAssigned {
+	if repo.history[0].NewStatus != modules.OrderStatusAssigned {
 		t.Errorf("history new_status: want assigned, got %q", repo.history[0].NewStatus)
 	}
 }
