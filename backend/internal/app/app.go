@@ -14,6 +14,7 @@ import (
 	"swift-gopher/internal/repository"
 	"swift-gopher/internal/repository/_postgres"
 	"swift-gopher/internal/usecase"
+	"swift-gopher/internal/worker"
 	"swift-gopher/pkg/modules"
 )
 
@@ -46,6 +47,16 @@ func Run() {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	workerCtx, _ := context.WithCancel(ctx)
+	dispatcher := worker.NewDispatcher(
+		usecases.OrderUsecase,
+		usecases.CourierUsecase,
+		usecases.AssignmentRepo,
+		appCfg.WorkerInterval,
+		logger,
+	)
+	go dispatcher.Run(workerCtx)
 
 	go func() {
 		logger.Info("server starting", "port", appCfg.HTTPPort)
