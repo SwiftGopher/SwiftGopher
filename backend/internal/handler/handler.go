@@ -4,10 +4,11 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"swift-gopher/internal/middleware"
 	"swift-gopher/internal/usecase"
-
-	"github.com/gin-gonic/gin"
+	"swift-gopher/pkg/modules"
 )
 
 type Handler struct {
@@ -40,18 +41,40 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	protected := r.Group("/")
 	protected.Use(middleware.JWT(h.usecases.AuthUsecase))
 	{
+
 		orders := protected.Group("/orders")
 		{
-			orders.POST("", h.CreateOrder)
-			orders.GET("", h.ListOrders)
+			orders.POST("",
+				middleware.RequireRole(modules.RoleClient, modules.RoleAdmin),
+				h.CreateOrder,
+			)
+			orders.GET("",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				h.ListOrders,
+			)
 			orders.GET("/:id", h.GetOrderByID)
-			orders.PATCH("/:id/status", h.UpdateOrderStatus)
+			orders.PATCH("/:id/status",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				h.UpdateOrderStatus,
+			)
 		}
+
 		couriers := protected.Group("/couriers")
 		{
-			couriers.GET("/", h.ListCouriers)
-			couriers.GET("/free", h.ListFreeCouriers)
-			couriers.PATCH("/:id/status", h.UpdateCourierStatus)
+			couriers.GET("",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
+				h.ListCouriers,
+			)
+
+			couriers.GET("/free",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
+				h.ListFreeCouriers,
+			)
+
+			couriers.PATCH("/:id/status",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				h.UpdateCourierStatus,
+			)
 		}
 	}
 
