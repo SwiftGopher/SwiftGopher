@@ -7,36 +7,41 @@ import (
 	"github.com/gin-gonic/gin"
 	"swift-gopher/internal/usecase"
 	"swift-gopher/pkg/modules"
+	"swift-gopher/internal/middleware"
 )
 
 func (h *Handler) CreateOrder(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+    claims := middleware.ClaimsFromContext(c)
+    if claims == nil {
+        h.log.Error("CreateOrder: no claims found in context")
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+        return
+    }
+    userID := claims.UserID
 
-	var req modules.CreateOrderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
+    var req modules.CreateOrderRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+        return
+    }
 
-	order, err := h.usecases.OrderUsecase.CreateOrder(c.Request.Context(), userID.(string), req)
-	if err != nil {
-		switch {
-		case errors.Is(err, usecase.ErrMissingAddress):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		case errors.Is(err, usecase.ErrInvalidPrice):
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		default:
-			h.log.Error("CreateOrder failed", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		}
-		return
-	}
+    order, err := h.usecases.OrderUsecase.CreateOrder(c.Request.Context(), userID, req)
+    if err != nil {
+        h.handleCreateOrderError(c, err)
+        return
+    }
+    c.JSON(http.StatusCreated, order)
+}
 
-	c.JSON(http.StatusCreated, order)
+func (h *Handler) handleCreateOrderError(c *gin.Context, err error) {
+    switch {
+    case errors.Is(err, usecase.ErrMissingAddress), 
+         errors.Is(err, usecase.ErrInvalidPrice):
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+    default:
+        h.log.Error("CreateOrder failed", "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+    }
 }
 
 func (h *Handler) GetOrderByID(c *gin.Context) {
