@@ -40,3 +40,11 @@ type CreateOrderRequest struct {
 type UpdateOrderStatusRequest struct {
 	Status OrderStatus `json:"status"`
 }
+
+type OrderFilter struct {
+	Status  OrderStatus `form:"status"`
+	Limit   int         `form:"limit"`
+	Offset  int         `form:"offset"`
+	SortBy  string      `form:"sort_by"`
+	SortDir string      `form:"sort_dir"`
+}
