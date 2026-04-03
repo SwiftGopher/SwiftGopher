@@ -53,6 +53,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				h.ListOrders,
 			)
 			orders.GET("/:id", h.GetOrderByID)
+			orders.GET("/:id/history", h.GetOrderHistory)
 			orders.PATCH("/:id/status",
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
 				h.UpdateOrderStatus,
