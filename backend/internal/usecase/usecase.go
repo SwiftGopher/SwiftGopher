@@ -19,8 +19,10 @@ type OrderUsecase interface {
 	CreateOrder(ctx context.Context, clientID string, req modules.CreateOrderRequest) (*modules.Order, error)
 	GetOrder(ctx context.Context, id string) (*modules.Order, error)
 	ListOrders(ctx context.Context) ([]*modules.Order, error)
+	ListOrdersFiltered(ctx context.Context, filter modules.OrderFilter) ([]*modules.Order, error)
 	ListPendingOrders(ctx context.Context) ([]*modules.Order, error)
 	UpdateStatus(ctx context.Context, id string, req modules.UpdateOrderStatusRequest) (*modules.Order, error)
+	GetOrderHistory(ctx context.Context, orderID string) ([]*modules.OrderHistory, error)
 }
 
 type CourierUsecase interface {
