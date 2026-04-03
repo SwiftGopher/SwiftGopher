@@ -22,8 +22,10 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id string) (*modules.Order, error)
 	List(ctx context.Context) ([]*modules.Order, error)
 	ListByStatus(ctx context.Context, status modules.OrderStatus) ([]*modules.Order, error)
+	ListWithFilter(ctx context.Context, filter modules.OrderFilter) ([]*modules.Order, error)
 	UpdateStatus(ctx context.Context, id string, status modules.OrderStatus) error
 	RecordHistory(ctx context.Context, history *modules.OrderHistory) error
+	GetHistory(ctx context.Context, orderID string) ([]*modules.OrderHistory, error)
 }
 
 type CourierRepository interface {
