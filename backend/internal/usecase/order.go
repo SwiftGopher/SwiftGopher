@@ -1,5 +1,6 @@
 package usecase
 
+/*
 import (
 	"context"
 	"errors"
@@ -130,3 +131,4 @@ func (u *orderUsecase) UpdateStatus(ctx context.Context, id string, req modules.
 	u.log.Info("order status updated", "order_id", id, "old", oldStatus, "new", req.Status)
 	return order, nil
 }
+*/

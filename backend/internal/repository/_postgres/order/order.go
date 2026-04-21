@@ -1,5 +1,6 @@
 package postgresOrders
 
+/*
 import (
 	"context"
 	"errors"
@@ -124,4 +125,4 @@ func scanOrders(rows pgx.Rows) ([]*modules.Order, error) {
 		return nil, fmt.Errorf("scanOrders rows.Err: %w", err)
 	}
 	return orders, nil
-}
+} */
