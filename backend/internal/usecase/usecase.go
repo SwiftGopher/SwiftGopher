@@ -23,6 +23,7 @@ type OrderUsecase interface {
 	ListPendingOrders(ctx context.Context) ([]*modules.Order, error)
 	UpdateStatus(ctx context.Context, id string, req modules.UpdateOrderStatusRequest) (*modules.Order, error)
 	GetOrderHistory(ctx context.Context, orderID string) ([]*modules.OrderHistory, error)
+	GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error)
 }
 
 type CourierUsecase interface {

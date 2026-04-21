@@ -164,3 +164,7 @@ func (u *orderUsecase) GetOrderHistory(ctx context.Context, orderID string) ([]*
 	}
 	return history, nil
 }
+
+func (u *orderUsecase) GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error) {
+	return u.repo.GetMyOrders(ctx, userId)
+}

@@ -191,3 +191,26 @@ func sanitizeSortDir(s string) string {
 	}
 	return "DESC"
 }
+
+func (r *OrderRepository) GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error) {
+	var myOrders []*modules.Order
+
+	query := `select id, client_id, pickup_address, delivery_address, status, price, created_at, updated_at
+	from orders where client_id = $1;`
+	rows, err := r.db.DB.Query(ctx, query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var o modules.Order
+		err := rows.Scan(&o.ID, &o.ClientID, &o.PickupAddress, &o.DeliveryAddress, &o.Status, &o.Price, &o.CreatedAt, &o.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		myOrders = append(myOrders, &o)
+	}
+
+	return myOrders, nil
+}

@@ -26,6 +26,7 @@ type OrderRepository interface {
 	UpdateStatus(ctx context.Context, id string, status modules.OrderStatus) error
 	RecordHistory(ctx context.Context, history *modules.OrderHistory) error
 	GetHistory(ctx context.Context, orderID string) ([]*modules.OrderHistory, error)
+	GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error)
 }
 
 type CourierRepository interface {

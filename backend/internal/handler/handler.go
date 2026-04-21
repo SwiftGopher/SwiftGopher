@@ -52,6 +52,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
 				h.ListOrders,
 			)
+			orders.GET("/my",
+				middleware.RequireRole(modules.RoleClient),
+				h.GetMyOrders,
+			)
 			orders.GET("/:id", h.GetOrderByID)
 			orders.GET("/:id/history", h.GetOrderHistory)
 			orders.PATCH("/:id/status",
