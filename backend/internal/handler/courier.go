@@ -3,13 +3,21 @@ package handler
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"swift-gopher/internal/usecase"
 	"swift-gopher/pkg/modules"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UpdateCourierStatusRequest struct {
 	Status modules.CourierStatus `json:"status"`
+}
+type UpdateCourierTransportRequest struct {
+	TransportType modules.TransportType `json:"transport_type"`
+}
+type UpdateCourierLocationRequest struct {
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
 }
 
 func (h *Handler) ListCouriers(c *gin.Context) {
@@ -58,6 +66,70 @@ func (h *Handler) UpdateCourierStatus(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
 		default:
 			h.log.Error("update courier status", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, courier)
+}
+
+func (h *Handler) UpdateCourierTransport(c *gin.Context) {
+	id := c.Param("id")
+
+	var req UpdateCourierTransportRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	courier, err := h.usecases.CourierUsecase.UpdateTransport(
+		c.Request.Context(),
+		id,
+		usecase.UpdateTransportRequest{
+			TransportType: req.TransportType,
+		},
+	)
+
+	if err != nil {
+		switch err {
+		case usecase.ErrCourierNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "courier not found"})
+		case usecase.ErrInvalidTransport:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid transport type"})
+		default:
+			h.log.Error("update courier transport", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, courier)
+}
+
+func (h *Handler) UpdateCourierLocation(c *gin.Context) {
+	id := c.Param("id")
+
+	var req UpdateCourierLocationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	courier, err := h.usecases.CourierUsecase.UpdateLocation(
+		c.Request.Context(),
+		id,
+		usecase.UpdateLocationRequest(req),
+	)
+
+	if err != nil {
+		switch err {
+		case usecase.ErrCourierNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "courier not found"})
+		case usecase.ErrInvalidLocation:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid location"})
+		default:
+			h.log.Error("update courier location", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
 		return

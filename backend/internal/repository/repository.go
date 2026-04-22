@@ -34,10 +34,13 @@ type CourierRepository interface {
 	Create(ctx context.Context, c *modules.Courier) error
 	GetByID(ctx context.Context, id string) (*modules.Courier, error)
 	GetByUserID(ctx context.Context, userID string) (*modules.Courier, error)
+
 	List(ctx context.Context) ([]*modules.Courier, error)
 	ListFree(ctx context.Context) ([]*modules.Courier, error)
+
 	UpdateStatus(ctx context.Context, id string, status modules.CourierStatus) error
 	UpdateLocation(ctx context.Context, id string, lat, lng float64) error
+	UpdateTransport(ctx context.Context, id string, transport modules.TransportType) error
 }
 
 type AssignmentRepository interface {

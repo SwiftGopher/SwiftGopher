@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
 	"swift-gopher/internal/repository/_postgres"
 	"swift-gopher/pkg/modules"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var ErrCourierNotFound = errors.New("courier not found")
@@ -88,6 +89,17 @@ func (r *courierRepository) UpdateLocation(ctx context.Context, id string, lat, 
 	)
 	if err != nil {
 		return fmt.Errorf("courierRepo.UpdateLocation: %w", err)
+	}
+	return nil
+}
+
+func (r *courierRepository) UpdateTransport(ctx context.Context, id string, transport modules.TransportType) error {
+	_, err := r.db.DB.Exec(ctx,
+		`UPDATE couriers SET transport_type = $1 WHERE id = $2`,
+		transport, id,
+	)
+	if err != nil {
+		return fmt.Errorf("courierRepo.UpdateTransport: %w", err)
 	}
 	return nil
 }

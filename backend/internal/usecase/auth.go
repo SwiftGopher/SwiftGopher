@@ -24,14 +24,18 @@ var (
 
 type authUsecase struct {
 	repo            repository.AuthRepository
+	courierRepo     repository.CourierRepository
 	jwtSecret       []byte
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
 
-func NewAuthUsecase(repo repository.AuthRepository, jwtSecret string, accessTTL, refreshTTL time.Duration) AuthUsecase {
+func NewAuthUsecase(
+	repo repository.AuthRepository, courierRepo repository.CourierRepository, jwtSecret string, accessTTL, refreshTTL time.Duration,
+) AuthUsecase {
 	return &authUsecase{
 		repo:            repo,
+		courierRepo:     courierRepo,
 		jwtSecret:       []byte(jwtSecret),
 		accessTokenTTL:  accessTTL,
 		refreshTokenTTL: refreshTTL,
@@ -44,6 +48,7 @@ func (u *authUsecase) Register(req modules.RegisterRequest) (*modules.User, erro
 	}
 
 	ctx := context.Background()
+
 	existing, err := u.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil && !errors.Is(err, ErrUserNotFound) && !isNotFoundErr(err) {
 		return nil, fmt.Errorf("checking existing user: %w", err)
@@ -68,6 +73,21 @@ func (u *authUsecase) Register(req modules.RegisterRequest) (*modules.User, erro
 	if err := u.repo.CreateUser(ctx, user); err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
+	if req.Role == modules.RoleCourier {
+		err := u.courierRepo.Create(ctx, &modules.Courier{
+			ID:            uuid.NewString(),
+			UserID:        user.ID,
+			TransportType: modules.TransportBike,
+			Status:        modules.StatusOffline,
+			CurrentLat:    0,
+			CurrentLng:    0,
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("creating courier profile: %w", err)
+		}
+	}
+
 	return user, nil
 }
 

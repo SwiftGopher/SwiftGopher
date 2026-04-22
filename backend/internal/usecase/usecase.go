@@ -28,9 +28,13 @@ type OrderUsecase interface {
 
 type CourierUsecase interface {
 	GetCourier(ctx context.Context, id string) (*modules.Courier, error)
+
 	ListCouriers(ctx context.Context) ([]*modules.Courier, error)
-	UpdateStatus(ctx context.Context, id string, req UpdateStatusRequest) (*modules.Courier, error)
 	ListFreeCouriers(ctx context.Context) ([]*modules.Courier, error)
+
+	UpdateStatus(ctx context.Context, id string, req UpdateStatusRequest) (*modules.Courier, error)
+	UpdateTransport(ctx context.Context, id string, req UpdateTransportRequest) (*modules.Courier, error)
+	UpdateLocation(ctx context.Context, id string, req UpdateLocationRequest) (*modules.Courier, error)
 }
 
 type UserUsecase interface {
@@ -47,7 +51,7 @@ type Usecases struct {
 
 func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, refreshTTL time.Duration) *Usecases {
 	return &Usecases{
-		AuthUsecase:    NewAuthUsecase(repos.AuthRepository, jwtSecret, accessTTL, refreshTTL),
+		AuthUsecase:    NewAuthUsecase(repos.AuthRepository, repos.CourierRepository, jwtSecret, accessTTL, refreshTTL),
 		OrderUsecase:   NewOrderUsecase(repos.OrderRepository, slog.Default()),
 		CourierUsecase: NewCourierUsecase(repos.CourierRepository),
 		AssignmentRepo: repos.AssignmentRepository,

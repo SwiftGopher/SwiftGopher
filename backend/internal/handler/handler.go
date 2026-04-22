@@ -80,6 +80,14 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
 				h.UpdateCourierStatus,
 			)
+			couriers.PATCH("/:id/transport",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				h.UpdateCourierTransport,
+			)
+			couriers.PATCH("/:id/location",
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				h.UpdateCourierLocation,
+			)
 		}
 
 		protected.GET("/profile", h.GetMyProfile)
