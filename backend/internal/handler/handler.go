@@ -81,6 +81,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				h.UpdateCourierStatus,
 			)
 		}
+
+		protected.GET("/profile", h.GetMyProfile)
 	}
 
 	return r

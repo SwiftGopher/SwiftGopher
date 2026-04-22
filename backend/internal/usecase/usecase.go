@@ -33,11 +33,16 @@ type CourierUsecase interface {
 	ListFreeCouriers(ctx context.Context) ([]*modules.Courier, error)
 }
 
+type UserUsecase interface {
+	GetMyProfile(ctx context.Context, userId string) (*modules.User, error)
+}
+
 type Usecases struct {
 	AuthUsecase
 	OrderUsecase
 	CourierUsecase
 	AssignmentRepo repository.AssignmentRepository
+	UserUsecase
 }
 
 func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, refreshTTL time.Duration) *Usecases {
@@ -46,5 +51,6 @@ func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, re
 		OrderUsecase:   NewOrderUsecase(repos.OrderRepository, slog.Default()),
 		CourierUsecase: NewCourierUsecase(repos.CourierRepository),
 		AssignmentRepo: repos.AssignmentRepository,
+		UserUsecase:    NewUserUsecase(repos.UserRepository),
 	}
 }

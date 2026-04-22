@@ -7,6 +7,7 @@ import (
 	postgresAuth "swift-gopher/internal/repository/_postgres/auth"
 	postgresCourier "swift-gopher/internal/repository/_postgres/courier"
 	postgresOrders "swift-gopher/internal/repository/_postgres/order"
+	postgresUser "swift-gopher/internal/repository/_postgres/user"
 	"swift-gopher/pkg/modules"
 	"time"
 )
@@ -45,11 +46,16 @@ type AssignmentRepository interface {
 	Complete(ctx context.Context, orderID string, completedAt time.Time) error
 }
 
+type UserRepository interface {
+	GetMyProfile(ctx context.Context, userId string) (*modules.User, error)
+}
+
 type Repositories struct {
 	AuthRepository
 	OrderRepository
 	CourierRepository
 	AssignmentRepository
+	UserRepository
 }
 
 func NewRepositories(db *_postgres.Dialect) *Repositories {
@@ -58,5 +64,6 @@ func NewRepositories(db *_postgres.Dialect) *Repositories {
 		OrderRepository:      postgresOrders.NewOrderRepository(db),
 		CourierRepository:    postgresCourier.NewCourierRepository(db),
 		AssignmentRepository: postgresAssignment.NewAssignmentRepository(db),
+		UserRepository:       postgresUser.NewUserRepo(db),
 	}
 }
