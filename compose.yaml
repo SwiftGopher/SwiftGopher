@@ -9,6 +9,8 @@ services:
     volumes:
       - ./backend:/app
       - /app/tmp
+    networks:
+      - app
     env_file:
       - .env.example
     depends_on:
@@ -24,12 +26,42 @@ services:
       - .env.example
     volumes:
       - pgtestdata:/var/lib/postgresql/data
+    networks:
+      - app
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
       interval: 10s
       retries: 5
       timeout: 10s
       start_period: 30s
+  
+  grafana:
+    image: grafana/grafana:main-ubuntu
+    container_name: grafana
+    env_file:
+      - .env.example
+    ports:
+      - "3001:3000"
+    networks:
+      - app
+    volumes:
+      - ./monitoring/grafana.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - grafanadata:/var/lib/grafana
+  
+  prom:
+    image: prom/prometheus:v3.11.3-distroless
+    container_name: prom
+    ports:
+      - "9091:9090"
+    networks:
+      - app
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
 
 volumes:
   pgtestdata:
+  grafanadata:
+
+networks:
+  app:
+    driver: bridge
