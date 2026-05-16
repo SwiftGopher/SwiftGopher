@@ -57,6 +57,14 @@ services:
       - app
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  
+  cache:
+    image: redis:8.6-alpine
+    container_name: cache
+    ports:
+      - "6380:6379"
+    networks:
+      - app
 
 volumes:
   pgtestdata:
