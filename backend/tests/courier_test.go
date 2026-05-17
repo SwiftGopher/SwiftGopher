@@ -9,7 +9,7 @@ import (
 )
 
 func newTestCourierUsecase() usecase.CourierUsecase {
-	return usecase.NewCourierUsecase(newMockCourierRepo())
+	return usecase.NewCourierUsecase(newMockCourierRepo(), nil)
 }
 
 func TestGetCourier_Success(t *testing.T) {
@@ -17,7 +17,7 @@ func TestGetCourier_Success(t *testing.T) {
 	c := &modules.Courier{ID: "c1", UserID: "u1", Status: modules.StatusFree}
 	repo.couriers[c.ID] = c
 
-	uc := usecase.NewCourierUsecase(repo)
+	uc := usecase.NewCourierUsecase(repo, nil)
 
 	got, err := uc.GetCourier(context.Background(), "c1")
 	if err != nil {
@@ -44,7 +44,7 @@ func TestListCouriers(t *testing.T) {
 	repo.couriers[c1.ID] = c1
 	repo.couriers[c2.ID] = c2
 
-	uc := usecase.NewCourierUsecase(repo)
+	uc := usecase.NewCourierUsecase(repo, nil)
 
 	list, err := uc.ListCouriers(context.Background())
 	if err != nil {
@@ -62,7 +62,7 @@ func TestListFreeCouriers(t *testing.T) {
 	repo.couriers[c1.ID] = c1
 	repo.couriers[c2.ID] = c2
 
-	uc := usecase.NewCourierUsecase(repo)
+	uc := usecase.NewCourierUsecase(repo, nil)
 
 	free, err := uc.ListFreeCouriers(context.Background())
 	if err != nil {
@@ -81,7 +81,7 @@ func TestUpdateStatus_Success(t *testing.T) {
 	c := &modules.Courier{ID: "c1", Status: modules.StatusFree}
 	repo.couriers[c.ID] = c
 
-	uc := usecase.NewCourierUsecase(repo)
+	uc := usecase.NewCourierUsecase(repo, nil)
 
 	updated, err := uc.UpdateStatus(context.Background(), "c1", usecase.UpdateStatusRequest{Status: modules.StatusBusy})
 	if err != nil {

@@ -20,7 +20,7 @@ func TestDispatcherAssignsCourier(t *testing.T) {
 	courierRepo.couriers[c1.ID] = c1
 	courierRepo.couriers[c2.ID] = c2
 
-	courierUC := usecase.NewCourierUsecase(courierRepo)
+	courierUC := usecase.NewCourierUsecase(courierRepo, nil)
 
 	free, err := courierUC.ListFreeCouriers(ctx)
 	if err != nil {

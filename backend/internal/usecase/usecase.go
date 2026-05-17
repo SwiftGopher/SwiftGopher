@@ -6,6 +6,8 @@ import (
 	"swift-gopher/internal/repository"
 	"swift-gopher/pkg/modules"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type AuthUsecase interface {
@@ -49,12 +51,12 @@ type Usecases struct {
 	UserUsecase
 }
 
-func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, refreshTTL time.Duration) *Usecases {
+func NewUsecases(repos *repository.Repositories, jwtSecret string, accessTTL, refreshTTL time.Duration, cache *redis.Client) *Usecases {
 	return &Usecases{
 		AuthUsecase:    NewAuthUsecase(repos.AuthRepository, repos.CourierRepository, jwtSecret, accessTTL, refreshTTL),
-		OrderUsecase:   NewOrderUsecase(repos.OrderRepository, slog.Default()),
-		CourierUsecase: NewCourierUsecase(repos.CourierRepository),
+		OrderUsecase:   NewOrderUsecase(repos.OrderRepository, slog.Default(), cache),
+		CourierUsecase: NewCourierUsecase(repos.CourierRepository, cache),
 		AssignmentRepo: repos.AssignmentRepository,
-		UserUsecase:    NewUserUsecase(repos.UserRepository),
+		UserUsecase:    NewUserUsecase(repos.UserRepository, cache),
 	}
 }

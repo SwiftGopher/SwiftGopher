@@ -11,6 +11,7 @@ import (
 	"swift-gopher/pkg/modules"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -21,12 +22,17 @@ var (
 )
 
 type orderUsecase struct {
-	repo repository.OrderRepository
-	log  *slog.Logger
+	repo  repository.OrderRepository
+	log   *slog.Logger
+	cache *redis.Client
 }
 
-func NewOrderUsecase(repo repository.OrderRepository, log *slog.Logger) OrderUsecase {
-	return &orderUsecase{repo: repo, log: log}
+func NewOrderUsecase(repo repository.OrderRepository, log *slog.Logger, cache *redis.Client) OrderUsecase {
+	return &orderUsecase{
+		repo:  repo,
+		log:   log,
+		cache: cache,
+	}
 }
 
 func isValidTransition(from, to modules.OrderStatus) bool {

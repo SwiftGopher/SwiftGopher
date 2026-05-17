@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"swift-gopher/pkg/modules"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -20,7 +22,8 @@ type UpdateStatusRequest struct {
 }
 
 type courierUsecase struct {
-	repo CourierRepository
+	repo  CourierRepository
+	cache *redis.Client
 }
 type UpdateTransportRequest struct {
 	TransportType modules.TransportType
@@ -41,8 +44,11 @@ type CourierRepository interface {
 	UpdateLocation(ctx context.Context, id string, lat, lng float64) error
 }
 
-func NewCourierUsecase(repo CourierRepository) CourierUsecase {
-	return &courierUsecase{repo: repo}
+func NewCourierUsecase(repo CourierRepository, cache *redis.Client) CourierUsecase {
+	return &courierUsecase{
+		repo:  repo,
+		cache: cache,
+	}
 }
 
 func (uc *courierUsecase) GetCourier(ctx context.Context, id string) (*modules.Courier, error) {

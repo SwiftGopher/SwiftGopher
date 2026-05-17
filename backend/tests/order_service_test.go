@@ -12,7 +12,7 @@ import (
 
 func newTestOrderUsecase() usecase.OrderUsecase {
 	repo := newMockOrderRepo()
-	return usecase.NewOrderUsecase(repo, newTestLogger())
+	return usecase.NewOrderUsecase(repo, newTestLogger(), nil)
 }
 
 func mustCreateOrder(t *testing.T, uc usecase.OrderUsecase) *modules.Order {
@@ -269,7 +269,7 @@ func TestListPendingOrders(t *testing.T) {
 
 func TestHistoryRecorded(t *testing.T) {
 	repo := newMockOrderRepo()
-	uc := usecase.NewOrderUsecase(repo, newTestLogger())
+	uc := usecase.NewOrderUsecase(repo, newTestLogger(), nil)
 
 	o, _ := uc.CreateOrder(context.Background(), "client-x", modules.CreateOrderRequest{
 		PickupAddress:   "A",

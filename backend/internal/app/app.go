@@ -15,6 +15,7 @@ import (
 	"swift-gopher/internal/repository/_postgres"
 	"swift-gopher/internal/usecase"
 	"swift-gopher/internal/worker"
+	"swift-gopher/pkg/cache"
 	"swift-gopher/pkg/modules"
 )
 
@@ -30,11 +31,15 @@ func Run() {
 
 	repositories := repository.NewRepositories(pg)
 
+	cacheRedis := cache.NewCache()
+	defer cacheRedis.Close()
+
 	usecases := usecase.NewUsecases(
 		repositories,
 		appCfg.JWTSecret,
 		appCfg.AccessTokenTTL,
 		appCfg.RefreshTokenTTL,
+		cacheRedis,
 	)
 
 	h := handler.NewHandler(usecases, logger)
@@ -48,7 +53,8 @@ func Run() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	workerCtx, _ := context.WithCancel(ctx)
+	workerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	dispatcher := worker.NewDispatcher(
 		usecases.OrderUsecase,
 		usecases.CourierUsecase,
