@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"swift-gopher/internal/repository/redis/ratelimit"
 	"swift-gopher/internal/repository/redis/tokenblacklist"
 	"swift-gopher/pkg/modules"
 )
@@ -34,7 +34,7 @@ func JWT(validator TokenValidator, bl *tokenblacklist.TokenBlacklist) gin.Handle
 		token := parts[1]
 
 		if bl != nil {
-			revoked, err := bl.IsRevoked(context.Background(), token)
+			revoked, err := bl.IsRevoked(c.Request.Context(), token)
 			if err == nil && revoked {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has been revoked"})
 				return
@@ -49,6 +49,28 @@ func JWT(validator TokenValidator, bl *tokenblacklist.TokenBlacklist) gin.Handle
 
 		c.Set("raw_token", token)
 		c.Set(ClaimsKey, claims)
+		c.Next()
+	}
+}
+
+func RedisRateLimit(limiter *ratelimit.RedisRateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if limiter == nil {
+			c.Next()
+			return
+		}
+
+		allowed, err := limiter.Allow(c.Request.Context(), c.ClientIP())
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		if !allowed {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "rate limit exceeded"})
+			return
+		}
+
 		c.Next()
 	}
 }
