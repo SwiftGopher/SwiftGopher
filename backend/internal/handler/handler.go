@@ -8,19 +8,30 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 
 	"swift-gopher/internal/middleware"
+	"swift-gopher/internal/repository/redis/tokenblacklist"
 	"swift-gopher/internal/usecase"
 	"swift-gopher/pkg/modules"
 )
 
 type Handler struct {
-	usecases *usecase.Usecases
-	log      *slog.Logger
+	usecases  *usecase.Usecases
+	log       *slog.Logger
+	blacklist *tokenblacklist.TokenBlacklist
 }
 
 func NewHandler(usecases *usecase.Usecases, log *slog.Logger) *Handler {
 	return &Handler{usecases: usecases, log: log}
+}
+
+func NewHandlerWithRedis(usecases *usecase.Usecases, log *slog.Logger, cache *redis.Client) *Handler {
+	var bl *tokenblacklist.TokenBlacklist
+	if cache != nil {
+		bl = tokenblacklist.New(cache)
+	}
+	return &Handler{usecases: usecases, log: log, blacklist: bl}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
@@ -29,6 +40,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	r.Use(middleware.Recovery(h.log))
 	r.Use(middleware.Logger(h.log))
+
+	r.Use(middleware.CORS([]string{"*"}))
+	rl := middleware.NewRateLimiter(20, 50)
+	r.Use(middleware.RateLimit(rl))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -49,8 +64,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}
 
 	protected := r.Group("/")
-	protected.Use(middleware.JWT(h.usecases.AuthUsecase))
+	protected.Use(middleware.JWT(h.usecases.AuthUsecase, h.blacklist))
 	{
+		protected.POST("/auth/logout", h.Logout)
 
 		orders := protected.Group("/orders")
 		{
@@ -80,12 +96,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.ListCouriers,
 			)
-
 			couriers.GET("/free",
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.ListFreeCouriers,
 			)
-
 			couriers.PATCH("/:id/status",
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
 				h.UpdateCourierStatus,

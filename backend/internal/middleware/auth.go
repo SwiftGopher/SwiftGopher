@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"swift-gopher/internal/repository/redis/tokenblacklist"
 	"swift-gopher/pkg/modules"
 )
 
@@ -15,7 +17,7 @@ type TokenValidator interface {
 	ValidateAccessToken(token string) (*modules.Claims, error)
 }
 
-func JWT(validator TokenValidator) gin.HandlerFunc {
+func JWT(validator TokenValidator, bl *tokenblacklist.TokenBlacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -29,12 +31,23 @@ func JWT(validator TokenValidator) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := validator.ValidateAccessToken(parts[1])
+		token := parts[1]
+
+		if bl != nil {
+			revoked, err := bl.IsRevoked(context.Background(), token)
+			if err == nil && revoked {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token has been revoked"})
+				return
+			}
+		}
+
+		claims, err := validator.ValidateAccessToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
+		c.Set("raw_token", token)
 		c.Set(ClaimsKey, claims)
 		c.Next()
 	}

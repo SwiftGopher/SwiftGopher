@@ -42,7 +42,7 @@ func Run() {
 		cacheRedis,
 	)
 
-	h := handler.NewHandler(usecases, logger)
+	h := handler.NewHandlerWithRedis(usecases, logger, cacheRedis)
 	router := h.InitRoutes()
 
 	srv := &http.Server{
@@ -76,6 +76,7 @@ func Run() {
 	<-quit
 
 	logger.Info("shutdown signal received")
+	cancel()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()
