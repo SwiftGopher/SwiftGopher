@@ -115,7 +115,8 @@ func isValidTransport(t modules.TransportType) bool {
 	switch t {
 	case modules.TransportBike,
 		modules.TransportCar,
-		modules.TransportFoot:
+		modules.TransportFoot,
+		modules.TransportScooter:
 		return true
 	}
 	return false

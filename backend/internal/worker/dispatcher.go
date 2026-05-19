@@ -45,6 +45,7 @@ func NewDispatcher(
 		pool:           NewPool(poolSize, queueSize, log),
 	}
 }
+
 func (d *Dispatcher) Run(ctx context.Context) {
 	d.log.Info("dispatcher started",
 		"interval", d.interval,
@@ -57,7 +58,6 @@ func (d *Dispatcher) Run(ctx context.Context) {
 	ticker := time.NewTicker(d.interval)
 	defer ticker.Stop()
 
-	// initial run
 	d.dispatch(ctx)
 
 	for {
@@ -70,23 +70,25 @@ func (d *Dispatcher) Run(ctx context.Context) {
 		}
 	}
 }
+
 func (d *Dispatcher) Dispatch(ctx context.Context) {
+	d.pool = NewPool(poolSize, queueSize, d.log)
 	d.pool.Start(ctx)
 	d.dispatch(ctx)
-
 	d.pool.Wait()
 }
+
 func (d *Dispatcher) dispatch(parentCtx context.Context) {
-	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
+	fetchCtx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 	defer cancel()
 
-	orders, err := d.orderUsecase.ListPendingOrders(ctx)
+	orders, err := d.orderUsecase.ListPendingOrders(fetchCtx)
 	if err != nil {
 		d.log.Error("failed to list orders", "error", err)
 		return
 	}
 
-	couriers, err := d.courierUsecase.ListFreeCouriers(ctx)
+	couriers, err := d.courierUsecase.ListFreeCouriers(fetchCtx)
 	if err != nil {
 		d.log.Error("failed to list couriers", "error", err)
 		return
@@ -108,8 +110,9 @@ func (d *Dispatcher) dispatch(parentCtx context.Context) {
 		o := order
 		c := courier
 
+		// Pass parentCtx to jobs so they aren't cancelled when dispatch() returns.
 		err := d.pool.Submit(func() {
-			d.assignWithRetry(ctx, o, c)
+			d.assignWithRetry(parentCtx, o, c)
 		})
 
 		if err != nil {
@@ -120,6 +123,7 @@ func (d *Dispatcher) dispatch(parentCtx context.Context) {
 		}
 	}
 }
+
 func (d *Dispatcher) assignWithRetry(
 	ctx context.Context,
 	order *modules.Order,
@@ -143,6 +147,7 @@ func (d *Dispatcher) assignWithRetry(
 		"courier_id", courier.ID,
 	)
 }
+
 func (d *Dispatcher) assign(
 	ctx context.Context,
 	order *modules.Order,
@@ -175,6 +180,7 @@ func (d *Dispatcher) assign(
 
 	return nil
 }
+
 func (d *Dispatcher) Pool() *Pool {
 	return d.pool
 }

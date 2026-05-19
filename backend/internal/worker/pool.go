@@ -51,11 +51,12 @@ func (p *Pool) Submit(job Job) error {
 	}
 	p.mu.RUnlock()
 
+	p.wg.Add(1)
 	select {
 	case p.jobs <- job:
-		p.wg.Add(1)
 		return nil
 	default:
+		p.wg.Done() // undo the Add since we're not submitting
 		return errors.New("queue full")
 	}
 }
