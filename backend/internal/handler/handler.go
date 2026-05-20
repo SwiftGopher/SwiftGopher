@@ -5,14 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
 	"swift-gopher/internal/middleware"
 	"swift-gopher/internal/repository/redis/tokenblacklist"
 	"swift-gopher/internal/usecase"
+	"swift-gopher/pkg/metrics"
 	"swift-gopher/pkg/modules"
 )
 
@@ -45,16 +44,12 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	rl := middleware.NewRateLimiter(20, 50)
 	r.Use(middleware.RateLimit(rl))
 
+	r.GET("/metrics", gin.WrapH(promhttp.HandlerFor(metrics.NewCustomRegistry(), promhttp.HandlerOpts{})))
+	r.Use(metrics.MetricsMiddleware())
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
-
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(
-		collectors.NewGoCollector(),
-		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-	)
-	r.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	auth := r.Group("/auth")
 	{
