@@ -28,6 +28,8 @@ type OrderRepository interface {
 	RecordHistory(ctx context.Context, history *modules.OrderHistory) error
 	GetHistory(ctx context.Context, orderID string) ([]*modules.OrderHistory, error)
 	GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error)
+	GetByIDs(ctx context.Context, ids []string) ([]*modules.Order, error)
+	GetByCourierID(ctx context.Context, courierID string) ([]*modules.Order, error)
 }
 
 type CourierRepository interface {
@@ -47,6 +49,7 @@ type AssignmentRepository interface {
 	Create(ctx context.Context, a *modules.Assignment) error
 	GetByOrderID(ctx context.Context, orderID string) (*modules.Assignment, error)
 	Complete(ctx context.Context, orderID string, completedAt time.Time) error
+	GetByCourierID(ctx context.Context, courierID string) ([]*modules.Assignment, error)
 }
 
 type UserRepository interface {

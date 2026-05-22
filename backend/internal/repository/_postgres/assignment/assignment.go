@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"swift-gopher/internal/repository/_postgres"
 	"swift-gopher/pkg/modules"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var ErrAssignmentNotFound = errors.New("assignment not found")
@@ -34,28 +35,72 @@ func (r *assignmentRepository) Create(ctx context.Context, a *modules.Assignment
 }
 
 func (r *assignmentRepository) GetByOrderID(ctx context.Context, orderID string) (*modules.Assignment, error) {
-	row := r.db.DB.QueryRow(ctx,
-		`SELECT id, order_id, courier_id, assigned_at, completed_at FROM assignments WHERE order_id = $1`,
-		orderID,
-	)
 	var a modules.Assignment
-	err := row.Scan(&a.ID, &a.OrderID, &a.CourierID, &a.AssignedAt, &a.CompletedAt)
+
+	err := r.db.DB.QueryRow(ctx,
+		`SELECT id, order_id, courier_id, assigned_at, completed_at
+		 FROM assignments
+		 WHERE order_id = $1
+		 LIMIT 1`,
+		orderID,
+	).Scan(&a.ID, &a.OrderID, &a.CourierID, &a.AssignedAt, &a.CompletedAt)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrAssignmentNotFound
 		}
 		return nil, fmt.Errorf("assignmentRepo.GetByOrderID: %w", err)
 	}
+
 	return &a, nil
 }
 
 func (r *assignmentRepository) Complete(ctx context.Context, orderID string, completedAt time.Time) error {
-	_, err := r.db.DB.Exec(ctx,
-		`UPDATE assignments SET completed_at = $1 WHERE order_id = $2`,
+	cmdTag, err := r.db.DB.Exec(ctx,
+		`UPDATE assignments
+		 SET completed_at = $1
+		 WHERE order_id = $2 AND completed_at IS NULL`,
 		completedAt, orderID,
 	)
 	if err != nil {
 		return fmt.Errorf("assignmentRepo.Complete: %w", err)
 	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return ErrAssignmentNotFound
+	}
+
 	return nil
+}
+
+func (r *assignmentRepository) GetByCourierID(ctx context.Context, courierID string) ([]*modules.Assignment, error) {
+	query := `
+		SELECT id, order_id, courier_id, assigned_at, completed_at
+		FROM assignments
+		WHERE courier_id = $1
+		AND completed_at IS NULL
+		ORDER BY assigned_at DESC
+	`
+
+	rows, err := r.db.DB.Query(ctx, query, courierID)
+	if err != nil {
+		return nil, fmt.Errorf("assignmentRepo.GetByCourierID: %w", err)
+	}
+	defer rows.Close()
+
+	var res []*modules.Assignment
+
+	for rows.Next() {
+		var a modules.Assignment
+		if err := rows.Scan(&a.ID, &a.OrderID, &a.CourierID, &a.AssignedAt, &a.CompletedAt); err != nil {
+			return nil, fmt.Errorf("assignmentRepo.GetByCourierID scan: %w", err)
+		}
+		res = append(res, &a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("assignmentRepo.GetByCourierID rows: %w", err)
+	}
+
+	return res, nil
 }

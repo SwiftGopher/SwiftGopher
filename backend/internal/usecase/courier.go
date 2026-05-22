@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"swift-gopher/pkg/modules"
 
@@ -12,6 +13,7 @@ import (
 
 var (
 	ErrCourierNotFound  = errors.New("courier not found")
+	ErrNoFreeCourier    = errors.New("no free courier available")
 	ErrInvalidStatus    = errors.New("invalid courier status")
 	ErrInvalidTransport = errors.New("invalid courier transport type")
 	ErrInvalidLocation  = errors.New("invalid courier location")
@@ -36,6 +38,7 @@ type UpdateLocationRequest struct {
 
 type CourierRepository interface {
 	GetByID(ctx context.Context, id string) (*modules.Courier, error)
+	GetByUserID(ctx context.Context, userID string) (*modules.Courier, error)
 	List(ctx context.Context) ([]*modules.Courier, error)
 	ListFree(ctx context.Context) ([]*modules.Courier, error)
 
@@ -53,6 +56,14 @@ func NewCourierUsecase(repo CourierRepository, cache *redis.Client) CourierUseca
 
 func (uc *courierUsecase) GetCourier(ctx context.Context, id string) (*modules.Courier, error) {
 	c, err := uc.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, ErrCourierNotFound
+	}
+	return c, nil
+}
+
+func (uc *courierUsecase) GetCourierByUserID(ctx context.Context, userID string) (*modules.Courier, error) {
+	c, err := uc.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, ErrCourierNotFound
 	}
@@ -84,6 +95,39 @@ func (uc *courierUsecase) UpdateStatus(ctx context.Context, id string, req Updat
 func (uc *courierUsecase) ListFreeCouriers(ctx context.Context) ([]*modules.Courier, error) {
 	return uc.repo.ListFree(ctx)
 }
+
+func (uc *courierUsecase) FindNearestCourier(ctx context.Context, lat, lng float64) (*modules.Courier, error) {
+	couriers, err := uc.repo.ListFree(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("FindNearestCourier: %w", err)
+	}
+	if len(couriers) == 0 {
+		return nil, ErrNoFreeCourier
+	}
+
+	var best *modules.Courier
+	bestDist := math.MaxFloat64
+	for _, c := range couriers {
+		d := haversineKm(lat, lng, c.CurrentLat, c.CurrentLng)
+		if d < bestDist {
+			bestDist = d
+			best = c
+		}
+	}
+	return best, nil
+}
+
+func haversineKm(lat1, lng1, lat2, lng2 float64) float64 {
+	const r = 6371.0
+	dLat := toRad(lat2 - lat1)
+	dLng := toRad(lng2 - lng1)
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(toRad(lat1))*math.Cos(toRad(lat2))*
+			math.Sin(dLng/2)*math.Sin(dLng/2)
+	return r * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+}
+
+func toRad(deg float64) float64 { return deg * math.Pi / 180 }
 
 func isValidStatus(s modules.CourierStatus) bool {
 	switch s {

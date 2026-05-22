@@ -1,0 +1,3 @@
+ALTER TABLE orders
+DROP COLUMN IF EXISTS pickup_lat,
+    DROP COLUMN IF EXISTS pickup_lng;

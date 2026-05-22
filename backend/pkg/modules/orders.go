@@ -15,9 +15,12 @@ const (
 type Order struct {
 	ID              string      `json:"id"`
 	ClientID        string      `json:"client_id"`
+	PickupLat       float64     `json:"pickup_lat"`
+	PickupLng       float64     `json:"pickup_lng"`
 	PickupAddress   string      `json:"pickup_address"`
 	DeliveryAddress string      `json:"delivery_address"`
 	Status          OrderStatus `json:"status"`
+	CourierID       string      `json:"courier_id,omitempty"`
 	Price           float64     `json:"price"`
 	CreatedAt       time.Time   `json:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at"`
@@ -34,6 +37,8 @@ type OrderHistory struct {
 type CreateOrderRequest struct {
 	PickupAddress   string  `json:"pickup_address"`
 	DeliveryAddress string  `json:"delivery_address"`
+	PickupLat       float64 `json:"pickup_lat"`
+	PickupLng       float64 `json:"pickup_lng"`
 	Price           float64 `json:"price"`
 }
 
@@ -42,9 +47,10 @@ type UpdateOrderStatusRequest struct {
 }
 
 type OrderFilter struct {
-	Status  OrderStatus `form:"status"`
-	Limit   int         `form:"limit"`
-	Offset  int         `form:"offset"`
-	SortBy  string      `form:"sort_by"`
-	SortDir string      `form:"sort_dir"`
+	Status    OrderStatus `form:"status"`
+	CourierID string      `form:"courier_id"`
+	Limit     int         `form:"limit"`
+	Offset    int         `form:"offset"`
+	SortBy    string      `form:"sort_by"`
+	SortDir   string      `form:"sort_dir"`
 }

@@ -95,16 +95,36 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.ListFreeCouriers,
 			)
+			couriers.GET("/me",
+				middleware.RequireRole(modules.RoleCourier),
+				h.GetMyCourier,
+			)
+			couriers.GET("/me/orders",
+				middleware.RequireRole(modules.RoleCourier),
+				h.GetMyCourierOrders,
+			)
+			couriers.PATCH("/me/status",
+				middleware.RequireRole(modules.RoleCourier),
+				h.UpdateMyCourierStatus,
+			)
+			couriers.PATCH("/me/transport",
+				middleware.RequireRole(modules.RoleCourier),
+				h.UpdateMyCourierTransport,
+			)
+			couriers.PATCH("/me/location",
+				middleware.RequireRole(modules.RoleCourier),
+				h.UpdateMyCourierLocation,
+			)
 			couriers.PATCH("/:id/status",
-				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.UpdateCourierStatus,
 			)
 			couriers.PATCH("/:id/transport",
-				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.UpdateCourierTransport,
 			)
 			couriers.PATCH("/:id/location",
-				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher, modules.RoleCourier),
+				middleware.RequireRole(modules.RoleAdmin, modules.RoleDispatcher),
 				h.UpdateCourierLocation,
 			)
 		}

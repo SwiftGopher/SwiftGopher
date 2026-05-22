@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log/slog"
+	"math"
 	"swift-gopher/pkg/modules"
 	"swift-gopher/pkg/retry"
 	"time"
@@ -98,19 +99,18 @@ func (d *Dispatcher) dispatch(parentCtx context.Context) {
 		return
 	}
 
-	n := len(orders)
-	if len(couriers) < n {
-		n = len(couriers)
-	}
+	assigned := make(map[string]bool, len(couriers))
 
-	for i := 0; i < n; i++ {
-		order := orders[i]
-		courier := couriers[i]
+	for _, order := range orders {
+		courier := nearestCourier(order, couriers, assigned)
+		if courier == nil {
+			break
+		}
+		assigned[courier.ID] = true
 
 		o := order
 		c := courier
 
-		// Pass parentCtx to jobs so they aren't cancelled when dispatch() returns.
 		err := d.pool.Submit(func() {
 			d.assignWithRetry(parentCtx, o, c)
 		})
@@ -122,6 +122,42 @@ func (d *Dispatcher) dispatch(parentCtx context.Context) {
 			)
 		}
 	}
+}
+
+func nearestCourier(order *modules.Order, couriers []*modules.Courier, assigned map[string]bool) *modules.Courier {
+	var best *modules.Courier
+	bestDist := math.MaxFloat64
+
+	for _, c := range couriers {
+		if assigned[c.ID] {
+			continue
+		}
+		dist := haversine(order.PickupLat, order.PickupLng, c.CurrentLat, c.CurrentLng)
+		if dist < bestDist {
+			bestDist = dist
+			best = c
+		}
+	}
+
+	return best
+}
+
+func haversine(lat1, lng1, lat2, lng2 float64) float64 {
+	const earthRadiusKm = 6371.0
+
+	dLat := toRad(lat2 - lat1)
+	dLng := toRad(lng2 - lng1)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(toRad(lat1))*math.Cos(toRad(lat2))*
+			math.Sin(dLng/2)*math.Sin(dLng/2)
+
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return earthRadiusKm * c
+}
+
+func toRad(deg float64) float64 {
+	return deg * math.Pi / 180
 }
 
 func (d *Dispatcher) assignWithRetry(

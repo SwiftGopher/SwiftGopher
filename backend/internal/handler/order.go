@@ -137,18 +137,19 @@ func (h *Handler) GetOrderHistory(c *gin.Context) {
 func (h *Handler) GetMyOrders(c *gin.Context) {
 	claims := middleware.ClaimsFromContext(c)
 	if claims == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect claim"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
 	myOrders, err := h.usecases.OrderUsecase.GetMyOrders(c.Request.Context(), claims.UserID)
 	if err != nil {
+		h.log.Error("GetMyOrders failed", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+
 	if myOrders == nil {
-		c.JSON(http.StatusNotFound, gin.H{"msg": "no orders"})
-		return
+		myOrders = []*modules.Order{}
 	}
 
 	c.JSON(http.StatusOK, myOrders)

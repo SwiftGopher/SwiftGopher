@@ -22,16 +22,26 @@ var (
 )
 
 type orderUsecase struct {
-	repo  repository.OrderRepository
-	log   *slog.Logger
-	cache *redis.Client
+	repo           repository.OrderRepository
+	assignmentRepo repository.AssignmentRepository
+	courierUC      CourierUsecase
+	log            *slog.Logger
+	cache          *redis.Client
 }
 
-func NewOrderUsecase(repo repository.OrderRepository, log *slog.Logger, cache *redis.Client) OrderUsecase {
+func NewOrderUsecase(
+	repo repository.OrderRepository,
+	assignmentRepo repository.AssignmentRepository,
+	courierUC CourierUsecase,
+	log *slog.Logger,
+	cache *redis.Client,
+) OrderUsecase {
 	return &orderUsecase{
-		repo:  repo,
-		log:   log,
-		cache: cache,
+		repo:           repo,
+		assignmentRepo: assignmentRepo,
+		courierUC:      courierUC,
+		log:            log,
+		cache:          cache,
 	}
 }
 
@@ -51,7 +61,12 @@ func isValidTransition(from, to modules.OrderStatus) bool {
 	return false
 }
 
-func (u *orderUsecase) CreateOrder(ctx context.Context, clientID string, req modules.CreateOrderRequest) (*modules.Order, error) {
+func (u *orderUsecase) CreateOrder(
+	ctx context.Context,
+	clientID string,
+	req modules.CreateOrderRequest,
+) (*modules.Order, error) {
+
 	if req.PickupAddress == "" || req.DeliveryAddress == "" {
 		return nil, ErrMissingAddress
 	}
@@ -60,9 +75,12 @@ func (u *orderUsecase) CreateOrder(ctx context.Context, clientID string, req mod
 	}
 
 	now := time.Now().UTC()
+
 	order := &modules.Order{
 		ID:              uuid.NewString(),
 		ClientID:        clientID,
+		PickupLat:       req.PickupLat,
+		PickupLng:       req.PickupLng,
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,
 		Status:          modules.OrderStatusPending,
@@ -71,11 +89,43 @@ func (u *orderUsecase) CreateOrder(ctx context.Context, clientID string, req mod
 		UpdatedAt:       now,
 	}
 
+	courier, err := u.courierUC.FindNearestCourier(ctx, req.PickupLat, req.PickupLng)
+	if err != nil {
+		u.log.Warn("no free courier found, order saved as pending", "order_id", order.ID)
+
+		if err := u.repo.Create(ctx, order); err != nil {
+			return nil, fmt.Errorf("orderUsecase.CreateOrder: %w", err)
+		}
+
+		return order, nil
+	}
+
+	order.Status = modules.OrderStatusAssigned
+	order.CourierID = courier.ID
+
 	if err := u.repo.Create(ctx, order); err != nil {
 		return nil, fmt.Errorf("orderUsecase.CreateOrder: %w", err)
 	}
 
-	u.log.Info("order created", "order_id", order.ID, "client_id", clientID)
+	assignment := &modules.Assignment{
+		ID:         uuid.NewString(),
+		OrderID:    order.ID,
+		CourierID:  courier.ID,
+		AssignedAt: now,
+	}
+	if err := u.assignmentRepo.Create(ctx, assignment); err != nil {
+		u.log.Error("failed to create assignment record", "order_id", order.ID, "courier_id", courier.ID, "err", err)
+	}
+
+	if _, err := u.courierUC.UpdateStatus(ctx, courier.ID, UpdateStatusRequest{Status: modules.StatusBusy}); err != nil {
+		u.log.Error("failed to update courier status after assignment", "courier_id", courier.ID, "err", err)
+	}
+
+	u.log.Info("order created and assigned",
+		"order_id", order.ID,
+		"courier_id", courier.ID,
+	)
+
 	return order, nil
 }
 
@@ -173,4 +223,12 @@ func (u *orderUsecase) GetOrderHistory(ctx context.Context, orderID string) ([]*
 
 func (u *orderUsecase) GetMyOrders(ctx context.Context, userId string) ([]*modules.Order, error) {
 	return u.repo.GetMyOrders(ctx, userId)
+}
+
+func (u *orderUsecase) GetCourierOrders(ctx context.Context, courierID string) ([]*modules.Order, error) {
+	orders, err := u.repo.GetByCourierID(ctx, courierID)
+	if err != nil {
+		return nil, fmt.Errorf("orderUsecase.GetCourierOrders: %w", err)
+	}
+	return orders, nil
 }
