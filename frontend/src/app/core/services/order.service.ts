@@ -41,4 +41,9 @@ export class OrderService {
   getHistory(id: string): Observable<OrderHistory[]> {
     return this.http.get<OrderHistory[]>(`${this.apiUrl}/orders/${id}/history`);
   }
+  getMyCourierOrders(): Observable<Order[]> {
+    return this.http.get<Order[]>(
+        `${this.apiUrl}/couriers/me/orders`
+    );
+  }
 }

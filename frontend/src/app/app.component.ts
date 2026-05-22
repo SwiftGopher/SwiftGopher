@@ -13,28 +13,28 @@ import { ThemeService } from './core/services/theme.service';
   template: `
     <div [attr.data-theme]="theme.current">
 
-      <!-- ── Desktop Sidebar ── -->
+      <!--  Desktop Sidebar  -->
       <aside class="sidebar" *ngIf="auth.isLoggedIn">
         <div class="sb-top">
           <div class="sb-brand">
-            <span class="sb-gopher">🐹</span>
+            <span class="sb-gopher"></span>
             <span class="sb-name">SwiftGopher</span>
           </div>
 
           <nav class="sb-nav">
             <a routerLink="/dashboard" routerLinkActive="active" class="sb-link">
-              <span class="sb-icon">🏠</span>
+              <span class="sb-icon"></span>
               <span class="sb-txt">{{ 'NAV.DASHBOARD' | translate }}</span>
             </a>
 
             <!-- Admin / Dispatcher -->
             <ng-container *ngIf="isAdminOrDispatcher">
               <a routerLink="/orders" routerLinkActive="active" class="sb-link">
-                <span class="sb-icon">📦</span>
+                <span class="sb-icon"></span>
                 <span class="sb-txt">{{ 'NAV.ORDERS' | translate }}</span>
               </a>
               <a routerLink="/couriers" routerLinkActive="active" class="sb-link">
-                <span class="sb-icon">🛵</span>
+                <span class="sb-icon"></span>
                 <span class="sb-txt">{{ 'NAV.COURIERS' | translate }}</span>
               </a>
             </ng-container>
@@ -42,7 +42,7 @@ import { ThemeService } from './core/services/theme.service';
             <!-- Client -->
             <ng-container *ngIf="isClient">
               <a routerLink="/my-orders" routerLinkActive="active" class="sb-link">
-                <span class="sb-icon">📦</span>
+                <span class="sb-icon"></span>
                 <span class="sb-txt">{{ 'NAV.MY_ORDERS' | translate }}</span>
               </a>
             </ng-container>
@@ -50,17 +50,17 @@ import { ThemeService } from './core/services/theme.service';
             <!-- Courier -->
             <ng-container *ngIf="isCourier">
               <a routerLink="/my-deliveries" routerLinkActive="active" class="sb-link">
-                <span class="sb-icon">🚚</span>
+                <span class="sb-icon"></span>
                 <span class="sb-txt">{{ 'NAV.MY_DELIVERIES' | translate }}</span>
               </a>
               <a routerLink="/couriers" routerLinkActive="active" class="sb-link">
-                <span class="sb-icon">📍</span>
+                <span class="sb-icon"></span>
                 <span class="sb-txt">{{ 'NAV.COURIERS' | translate }}</span>
               </a>
             </ng-container>
 
             <a routerLink="/profile" routerLinkActive="active" class="sb-link">
-              <span class="sb-icon">👤</span>
+              <span class="sb-icon"></span>
               <span class="sb-txt">{{ 'NAV.PROFILE' | translate }}</span>
             </a>
           </nav>
@@ -75,7 +75,7 @@ import { ThemeService } from './core/services/theme.service';
           </div>
           <!-- Theme -->
           <button class="theme-toggle" (click)="theme.toggle()">
-            {{ theme.current === 'dark' ? '☀️ Light' : '🌙 Dark' }}
+            {{ theme.current === 'dark' ? ' Light' : ' Dark' }}
           </button>
           <!-- User -->
           <div class="sb-user">
@@ -86,18 +86,18 @@ import { ThemeService } from './core/services/theme.service';
             </div>
           </div>
           <button class="btn btn-danger btn-sm w-full" (click)="auth.logout()">
-            🚪 {{ 'NAV.LOGOUT' | translate }}
+             {{ 'NAV.LOGOUT' | translate }}
           </button>
         </div>
       </aside>
 
-      <!-- ── Main ── -->
+      <!--  Main  -->
       <main class="main" [class.with-sidebar]="auth.isLoggedIn">
 
         <!-- Mobile topbar -->
         <div class="mobile-top" *ngIf="auth.isLoggedIn">
           <div class="mob-brand">
-            <span>🐹</span>
+            <span></span>
             <span style="font-family:var(--font-h);font-weight:700;font-size:18px;background:linear-gradient(135deg,var(--text),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SwiftGopher</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -105,7 +105,7 @@ import { ThemeService } from './core/services/theme.service';
             <button class="lang-btn" [class.active]="lang==='ru'" (click)="setLang('ru')">RU</button>
             <button class="lang-btn" [class.active]="lang==='kz'" (click)="setLang('kz')">KZ</button>
             <button class="btn btn-sm btn-secondary" (click)="theme.toggle()">
-              {{ theme.current === 'dark' ? '☀️' : '🌙' }}
+              {{ theme.current === 'dark' ? '' : '' }}
             </button>
           </div>
         </div>
@@ -117,17 +117,17 @@ import { ThemeService } from './core/services/theme.service';
 
       <!-- Mobile bottom nav -->
       <nav class="mob-nav" *ngIf="auth.isLoggedIn">
-        <a routerLink="/dashboard" routerLinkActive="active" class="mob-item">🏠</a>
+        <a routerLink="/dashboard" routerLinkActive="active" class="mob-item"></a>
         <ng-container *ngIf="isAdminOrDispatcher">
-          <a routerLink="/orders" routerLinkActive="active" class="mob-item">📦</a>
-          <a routerLink="/couriers" routerLinkActive="active" class="mob-item">🛵</a>
+          <a routerLink="/orders" routerLinkActive="active" class="mob-item"></a>
+          <a routerLink="/couriers" routerLinkActive="active" class="mob-item"></a>
         </ng-container>
-        <a *ngIf="isClient" routerLink="/my-orders" routerLinkActive="active" class="mob-item">📦</a>
+        <a *ngIf="isClient" routerLink="/my-orders" routerLinkActive="active" class="mob-item"></a>
         <ng-container *ngIf="isCourier">
-          <a routerLink="/my-deliveries" routerLinkActive="active" class="mob-item">🚚</a>
-          <a routerLink="/couriers" routerLinkActive="active" class="mob-item">📍</a>
+          <a routerLink="/my-deliveries" routerLinkActive="active" class="mob-item"></a>
+          <a routerLink="/couriers" routerLinkActive="active" class="mob-item"></a>
         </ng-container>
-        <a routerLink="/profile" routerLinkActive="active" class="mob-item">👤</a>
+        <a routerLink="/profile" routerLinkActive="active" class="mob-item"></a>
       </nav>
 
     </div>
@@ -135,7 +135,7 @@ import { ThemeService } from './core/services/theme.service';
   styles: [`
     :host { display: block; }
 
-    /* ── Sidebar ── */
+    /*  Sidebar  */
     .sidebar {
       position: fixed; left: 0; top: 0; bottom: 0; width: 230px;
       background: var(--bg2); border-right: 2.5px solid var(--border);
@@ -183,12 +183,12 @@ import { ThemeService } from './core/services/theme.service';
     .sb-user-info { flex: 1; min-width: 0; }
     .sb-email { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
 
-    /* ── Main ── */
+    /*  Main  */
     .main { min-height: 100vh; }
     .main.with-sidebar { margin-left: 230px; }
     .page-wrap { padding: 20px; max-width: 1100px; }
 
-    /* ── Mobile top ── */
+    /*  Mobile top  */
     .mobile-top {
       display: none; position: sticky; top: 0; z-index: 40;
       background: var(--bg2); border-bottom: 2px solid var(--border);
@@ -196,7 +196,7 @@ import { ThemeService } from './core/services/theme.service';
     }
     .mob-brand { display: flex; align-items: center; gap: 6px; }
 
-    /* ── Mobile bottom nav ── */
+    /*  Mobile bottom nav  */
     .mob-nav {
       display: none; position: fixed; bottom: 0; left: 0; right: 0;
       background: var(--bg2); border-top: 2.5px solid var(--border);
@@ -223,9 +223,9 @@ export class AppComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
 
   constructor(
-    public auth: AuthService,
-    public theme: ThemeService,
-    private translate: TranslateService
+      public auth: AuthService,
+      public theme: ThemeService,
+      private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -248,6 +248,6 @@ export class AppComponent implements OnInit, OnDestroy {
   get isCourier(): boolean { return this.auth.role === 'courier'; }
 
   get roleEmoji(): string {
-    return ({admin:'👑',dispatcher:'📋',courier:'🛵',client:'👤'})[this.auth.role] ?? '👤';
+    return ({admin:'',dispatcher:'',courier:'',client:''})[this.auth.role] ?? '';
   }
 }

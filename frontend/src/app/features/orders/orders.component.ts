@@ -42,37 +42,42 @@ import { Order, OrderHistory, OrderStatus } from '../../shared/models/models';
 
       <ng-container *ngIf="!loading">
         <div class="empty" *ngIf="orders.length===0">
-            <p>{{ 'ORDERS.NONE' | translate }}</p>
-          </div>
+          <p>{{ 'ORDERS.NONE' | translate }}</p>
+        </div>
 
         <div class="table-wrap" *ngIf="orders.length>0">
           <table>
             <thead>
-              <tr>
-                <th>{{ 'ORDERS.ID' | translate }}</th>
-                <th>{{ 'ORDERS.PICKUP' | translate }}</th>
-                <th>{{ 'ORDERS.DELIVERY' | translate }}</th>
-                <th>{{ 'ORDERS.STATUS' | translate }}</th>
-                <th>{{ 'ORDERS.PRICE' | translate }}</th>
-                <th>{{ 'ORDERS.CREATED' | translate }}</th>
-                <th>{{ 'ORDERS.ACTIONS' | translate }}</th>
-              </tr>
+            <tr>
+              <th>{{ 'ORDERS.ID' | translate }}</th>
+              <th>{{ 'ORDERS.PICKUP' | translate }}</th>
+              <th>{{ 'ORDERS.DELIVERY' | translate }}</th>
+              <th>{{ 'ORDERS.STATUS' | translate }}</th>
+              <th>Courier</th>
+              <th>{{ 'ORDERS.PRICE' | translate }}</th>
+              <th>{{ 'ORDERS.CREATED' | translate }}</th>
+              <th>{{ 'ORDERS.ACTIONS' | translate }}</th>
+            </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let o of orders">
-                <td><code>{{ o.id.slice(0,8) }}…</code></td>
-                <td class="addr-cell" [title]="o.pickup_address">{{ o.pickup_address }}</td>
-                <td class="addr-cell" [title]="o.delivery_address">{{ o.delivery_address }}</td>
-                <td><span class="badge badge-{{ o.status }}">{{ 'STATUS.' + o.status | translate }}</span></td>
-                <td><strong class="text-pink" style="font-family:var(--font-h)">₸{{ o.price }}</strong></td>
-                <td class="text-sm text-muted">{{ o.created_at | date:'dd.MM HH:mm' }}</td>
-                <td>
-                  <div class="flex gap-1">
-                    <button class="btn btn-xs btn-secondary" (click)="openHistory(o)">History</button>
-                    <button class="btn btn-xs btn-primary" (click)="openUpdate(o)">Edit</button>
-                  </div>
-                </td>
-              </tr>
+            <tr *ngFor="let o of orders">
+              <td><code>{{ o.id.slice(0,8) }}…</code></td>
+              <td class="addr-cell" [title]="o.pickup_address">{{ o.pickup_address }}</td>
+              <td class="addr-cell" [title]="o.delivery_address">{{ o.delivery_address }}</td>
+              <td><span class="badge badge-{{ o.status }}">{{ 'STATUS.' + o.status | translate }}</span></td>
+              <td>
+                <code *ngIf="o.courier_id" class="courier-chip" [title]="o.courier_id">{{ o.courier_id.slice(0,8) }}…</code>
+                <span *ngIf="!o.courier_id" class="text-muted text-sm">—</span>
+              </td>
+              <td><strong class="text-pink" style="font-family:var(--font-h)">₸{{ o.price }}</strong></td>
+              <td class="text-sm text-muted">{{ o.created_at | date:'dd.MM HH:mm' }}</td>
+              <td>
+                <div class="flex gap-1">
+                  <button class="btn btn-xs btn-secondary" (click)="openHistory(o)">History</button>
+                  <button class="btn btn-xs btn-primary" (click)="openUpdate(o)">Edit</button>
+                </div>
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -85,7 +90,7 @@ import { Order, OrderHistory, OrderStatus } from '../../shared/models/models';
       </ng-container>
     </div>
 
-      <div class="overlay" *ngIf="showUpdate && sel" (click)="closeAll()">
+    <div class="overlay" *ngIf="showUpdate && sel" (click)="closeAll()">
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal-title">{{ 'ORDERS.UPDATE' | translate }}</div>
         <div class="text-sm text-muted mb-3">
@@ -140,7 +145,7 @@ import { Order, OrderHistory, OrderStatus } from '../../shared/models/models';
       </div>
     </div>
   `,
-  styles: [`.addr-cell { max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }`]
+  styles: [`.addr-cell { max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; } .courier-chip { font-size:12px; background:var(--bg4); padding:2px 7px; border-radius:6px; color:var(--cyan); letter-spacing:0.3px; cursor:default; }`]
 })
 export class OrdersComponent implements OnInit {
   orders: Order[] = [];

@@ -13,6 +13,9 @@ export interface TokenPair {
 export interface Order {
   id: string;
   client_id: string;
+  courier_id?: string;
+  pickup_lat: number;
+  pickup_lng: number;
   pickup_address: string;
   delivery_address: string;
   status: OrderStatus;
@@ -51,6 +54,8 @@ export interface Courier {
 export interface CreateOrderRequest {
   pickup_address: string;
   delivery_address: string;
+  pickup_lat: number;
+  pickup_lng: number;
   price: number;
 }
 
