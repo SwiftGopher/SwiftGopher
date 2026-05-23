@@ -22,12 +22,12 @@ SwiftGopher is a production-grade Go backend service for managing the full lifec
 
 ## Team
 
-| Name | Role |
-|------|------|
-| Member 1 | Team Lead | Marzhan Omarbekova
-| Member 2 | Scrum Master | Zhankarys Ryskali
-| Member 3 | Core Backend Developer | Ayala Nurakyn
-| Member 4 | QA Engineer | Yerdaulet Tileukhanov
+| Name | Role | Name |
+|------|------|------|
+| Member 1 | Team Lead | Marzhan Omarbekova |
+| Member 2 | Scrum Master | Zhankarys Ryskali |
+| Member 3 | Core Backend Developer | Ayala Nurakyn |
+| Member 4 | QA Engineer | Yerdaulet Tileukhanov |
 
 ---
 
