@@ -56,7 +56,7 @@ func (p *Pool) Submit(job Job) error {
 	case p.jobs <- job:
 		return nil
 	default:
-		p.wg.Done() // undo the Add since we're not submitting
+		p.wg.Done()
 		return errors.New("queue full")
 	}
 }

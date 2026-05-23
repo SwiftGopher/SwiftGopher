@@ -18,6 +18,8 @@ func newTestLogger() *slog.Logger {
 	}))
 }
 
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
 type mockAuthRepo struct {
 	byEmail map[string]*modules.User
 	byID    map[string]*modules.User
@@ -54,6 +56,8 @@ func (m *mockAuthRepo) GetUserByID(_ context.Context, id string) (*modules.User,
 	}
 	return u, nil
 }
+
+// ── Courier ───────────────────────────────────────────────────────────────────
 
 type mockCourierRepo struct {
 	couriers map[string]*modules.Courier
@@ -131,6 +135,8 @@ func (m *mockCourierRepo) UpdateTransport(_ context.Context, id string, transpor
 	return nil
 }
 
+// ── Order ─────────────────────────────────────────────────────────────────────
+
 type mockOrderRepo struct {
 	mu      sync.Mutex
 	orders  map[string]*modules.Order
@@ -184,6 +190,20 @@ func (m *mockOrderRepo) ListByStatus(_ context.Context, status modules.OrderStat
 	return out, nil
 }
 
+func (m *mockOrderRepo) ListWithFilter(_ context.Context, filter modules.OrderFilter) ([]*modules.Order, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []*modules.Order
+	for _, o := range m.orders {
+		if filter.Status != "" && o.Status != filter.Status {
+			continue
+		}
+		cp := *o
+		out = append(out, &cp)
+	}
+	return out, nil
+}
+
 func (m *mockOrderRepo) UpdateStatus(_ context.Context, id string, status modules.OrderStatus) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -215,20 +235,6 @@ func (m *mockOrderRepo) GetHistory(_ context.Context, orderID string) ([]*module
 	return res, nil
 }
 
-func (m *mockOrderRepo) ListWithFilter(_ context.Context, filter modules.OrderFilter) ([]*modules.Order, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var out []*modules.Order
-	for _, o := range m.orders {
-		if filter.Status != "" && o.Status != filter.Status {
-			continue
-		}
-		cp := *o
-		out = append(out, &cp)
-	}
-	return out, nil
-}
-
 func (m *mockOrderRepo) GetMyOrders(_ context.Context, userID string) ([]*modules.Order, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -241,6 +247,34 @@ func (m *mockOrderRepo) GetMyOrders(_ context.Context, userID string) ([]*module
 	}
 	return out, nil
 }
+
+func (m *mockOrderRepo) GetByIDs(_ context.Context, ids []string) ([]*modules.Order, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []*modules.Order
+	for _, id := range ids {
+		if o, ok := m.orders[id]; ok {
+			cp := *o
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (m *mockOrderRepo) GetByCourierID(_ context.Context, courierID string) ([]*modules.Order, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []*modules.Order
+	for _, o := range m.orders {
+		if o.CourierID == courierID {
+			cp := *o
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+// ── Assignment ────────────────────────────────────────────────────────────────
 
 type mockAssignmentRepo struct {
 	assignments map[string]*modules.Assignment
@@ -270,4 +304,14 @@ func (m *mockAssignmentRepo) Complete(_ context.Context, orderID string, complet
 	}
 	a.CompletedAt = &completedAt
 	return nil
+}
+
+func (m *mockAssignmentRepo) GetByCourierID(_ context.Context, courierID string) ([]*modules.Assignment, error) {
+	var out []*modules.Assignment
+	for _, a := range m.assignments {
+		if a.CourierID == courierID {
+			out = append(out, a)
+		}
+	}
+	return out, nil
 }

@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -10,9 +11,41 @@ import (
 	"swift-gopher/pkg/modules"
 )
 
+type mockCourierUsecase struct{}
+
+func (m *mockCourierUsecase) FindNearestCourier(_ context.Context, _, _ float64) (*modules.Courier, error) {
+	return nil, errors.New("no courier available")
+}
+func (m *mockCourierUsecase) GetCourier(_ context.Context, _ string) (*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) GetCourierByUserID(_ context.Context, _ string) (*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) ListCouriers(_ context.Context) ([]*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) ListFreeCouriers(_ context.Context) ([]*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) UpdateStatus(_ context.Context, _ string, _ usecase.UpdateStatusRequest) (*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) UpdateLocation(_ context.Context, _ string, _ usecase.UpdateLocationRequest) (*modules.Courier, error) {
+	return nil, nil
+}
+func (m *mockCourierUsecase) UpdateTransport(_ context.Context, _ string, _ usecase.UpdateTransportRequest) (*modules.Courier, error) {
+	return nil, nil
+}
+
 func newTestOrderUsecase() usecase.OrderUsecase {
-	repo := newMockOrderRepo()
-	return usecase.NewOrderUsecase(repo, newTestLogger(), nil)
+	return usecase.NewOrderUsecase(
+		newMockOrderRepo(),
+		newMockAssignmentRepo(),
+		&mockCourierUsecase{},
+		newTestLogger(),
+		nil,
+	)
 }
 
 func mustCreateOrder(t *testing.T, uc usecase.OrderUsecase) *modules.Order {
@@ -217,7 +250,11 @@ func TestUpdateStatus_TerminalStates(t *testing.T) {
 			modules.OrderStatusInProgress,
 			modules.OrderStatusDelivered,
 		} {
-			o, _ = uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: s})
+			updated, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: s})
+			if err != nil {
+				t.Fatalf("setup transition to %q failed: %v", s, err)
+			}
+			o = updated
 		}
 
 		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
@@ -230,9 +267,13 @@ func TestUpdateStatus_TerminalStates(t *testing.T) {
 		uc := newTestOrderUsecase()
 		o := mustCreateOrder(t, uc)
 
-		uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
+		updated, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusCancelled})
+		if err != nil {
+			t.Fatalf("setup transition to cancelled failed: %v", err)
+		}
+		o = updated
 
-		_, err := uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+		_, err = uc.UpdateStatus(ctx, o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
 		if err != usecase.ErrInvalidOrderStatus {
 			t.Errorf("expected ErrInvalidOrderStatus after cancelled, got %v", err)
 		}
@@ -247,11 +288,18 @@ func TestListPendingOrders(t *testing.T) {
 		mustCreateOrder(t, uc)
 	}
 
-	orders, _ := uc.ListPendingOrders(ctx)
+	orders, err := uc.ListPendingOrders(ctx)
+	if err != nil {
+		t.Fatalf("initial ListPendingOrders failed: %v", err)
+	}
 	if len(orders) < 1 {
 		t.Fatal("need at least 1 order to proceed")
 	}
-	uc.UpdateStatus(ctx, orders[0].ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+
+	_, err = uc.UpdateStatus(ctx, orders[0].ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+	if err != nil {
+		t.Fatalf("UpdateStatus failed: %v", err)
+	}
 
 	pending, err := uc.ListPendingOrders(ctx)
 	if err != nil {
@@ -269,27 +317,43 @@ func TestListPendingOrders(t *testing.T) {
 
 func TestHistoryRecorded(t *testing.T) {
 	repo := newMockOrderRepo()
-	uc := usecase.NewOrderUsecase(repo, newTestLogger(), nil)
+	uc := usecase.NewOrderUsecase(
+		repo,
+		newMockAssignmentRepo(),
+		&mockCourierUsecase{},
+		newTestLogger(),
+		nil,
+	)
 
-	o, _ := uc.CreateOrder(context.Background(), "client-x", modules.CreateOrderRequest{
+	o, err := uc.CreateOrder(context.Background(), "client-x", modules.CreateOrderRequest{
 		PickupAddress:   "A",
 		DeliveryAddress: "B",
 		Price:           5,
 	})
+	if err != nil {
+		t.Fatalf("CreateOrder failed: %v", err)
+	}
 
-	uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+	_, err = uc.UpdateStatus(context.Background(), o.ID, modules.UpdateOrderStatusRequest{Status: modules.OrderStatusAssigned})
+	if err != nil {
+		t.Fatalf("UpdateStatus failed: %v", err)
+	}
 
 	repo.mu.Lock()
 	historyCount := len(repo.history)
+	first := repo.history[0]
 	repo.mu.Unlock()
 
 	if historyCount == 0 {
-		t.Error("expected at least one history record after status update")
+		t.Fatal("expected at least one history record after status update")
 	}
-	if repo.history[0].OldStatus != modules.OrderStatusPending {
-		t.Errorf("history old_status: want pending, got %q", repo.history[0].OldStatus)
+	if first == nil {
+		t.Fatal("history[0] is nil")
 	}
-	if repo.history[0].NewStatus != modules.OrderStatusAssigned {
-		t.Errorf("history new_status: want assigned, got %q", repo.history[0].NewStatus)
+	if first.OldStatus != modules.OrderStatusPending {
+		t.Errorf("history old_status: want pending, got %q", first.OldStatus)
+	}
+	if first.NewStatus != modules.OrderStatusAssigned {
+		t.Errorf("history new_status: want assigned, got %q", first.NewStatus)
 	}
 }
